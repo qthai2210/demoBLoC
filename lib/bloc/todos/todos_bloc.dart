@@ -4,10 +4,13 @@ import 'package:demobloc/bloc/todos/todos_event.dart';
 import 'package:demobloc/bloc/todos/todos_state.dart';
 import 'package:demobloc/repositories/todo_repository.dart';
 import 'package:demobloc/models/todo.dart';
+import 'package:rxdart/rxdart.dart';
 
 class TodosBloc extends Bloc<TodosEvent, TodosState> {
   final TodoRepository _todoRepository;
   late StreamSubscription<List<Todo>> _todosSubscription;
+  final _searchTerms = BehaviorSubject<String>();
+  late StreamSubscription<String> _searchSubscription;
 
   TodosBloc({required TodoRepository todoRepository})
     : _todoRepository = todoRepository,
@@ -17,7 +20,7 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
     on<UpdateTodo>(_onUpdateTodo);
     on<DeleteTodo>(_onDeleteTodo);
     on<ToggleTodoCompletion>(_onToggleTodoCompletion);
-    on<SearchTodos>(_onSearchTodos); // Add handling for search
+    on<SearchTodos>(_onSearchTodos);
 
     // Initialize with current todos
     add(LoadTodos());
@@ -26,14 +29,32 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
     _todosSubscription = _todoRepository.todos.listen((todos) {
       // Only update if we're not in the middle of an operation
       if (state is! TodosLoading) {
-        emit(TodosLoaded(todos));
+        final currentState = state;
+        final searchTerm =
+            (currentState is TodosLoaded) ? currentState.searchTerm : '';
+        emit(TodosLoaded(todos, searchTerm: searchTerm));
       }
     });
+
+    // Set up debounced search
+    _searchSubscription = _searchTerms
+        .debounceTime(const Duration(milliseconds: 2000))
+        .distinct()
+        .listen((searchTerm) {
+          add(SearchTodos(searchTerm));
+        });
+  }
+
+  // Add search term to the BehaviorSubject
+  void addSearchTerm(String term) {
+    _searchTerms.add(term);
   }
 
   @override
   Future<void> close() {
     _todosSubscription.cancel();
+    _searchSubscription.cancel();
+    _searchTerms.close();
     _todoRepository.dispose();
     return super.close();
   }

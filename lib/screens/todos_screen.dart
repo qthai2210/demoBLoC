@@ -223,13 +223,15 @@ class _SearchBarState extends State<_SearchBar> {
             icon: const Icon(Icons.clear),
             onPressed: () {
               _textController.clear();
+              // Use the direct add method for clear to make it immediate
               context.read<TodosBloc>().add(const SearchTodos(''));
             },
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 0),
         ),
         onChanged: (value) {
-          context.read<TodosBloc>().add(SearchTodos(value));
+          // Use the debounced method for user typing
+          context.read<TodosBloc>().addSearchTerm(value);
         },
       ),
     );
