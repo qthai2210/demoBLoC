@@ -8,13 +8,13 @@ import 'package:rxdart/rxdart.dart';
 
 class TodosBloc extends Bloc<TodosEvent, TodosState> {
   final TodoRepository _todoRepository;
-  late StreamSubscription<List<Todo>> _todosSubscription;
   final _searchTerms = BehaviorSubject<String>();
-  late StreamSubscription<String> _searchSubscription;
 
   TodosBloc({required TodoRepository todoRepository})
     : _todoRepository = todoRepository,
-      super(TodosInitial()) {
+      super(TodosLoading()) {
+    // Start with loading state
+
     on<LoadTodos>(_onLoadTodos);
     on<AddTodo>(_onAddTodo);
     on<UpdateTodo>(_onUpdateTodo);
@@ -22,27 +22,36 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
     on<ToggleTodoCompletion>(_onToggleTodoCompletion);
     on<SearchTodos>(_onSearchTodos);
 
-    // Initialize with current todos
-    add(LoadTodos());
-
-    // Listen for repository changes
-    _todosSubscription = _todoRepository.todos.listen((todos) {
-      // Only update if we're not in the middle of an operation
-      if (state is! TodosLoading) {
-        final currentState = state;
-        final searchTerm =
-            (currentState is TodosLoaded) ? currentState.searchTerm : '';
-        emit(TodosLoaded(todos, searchTerm: searchTerm));
-      }
-    });
-
     // Set up debounced search
-    _searchSubscription = _searchTerms
-        .debounceTime(const Duration(milliseconds: 2000))
+    _searchTerms
+        .debounceTime(const Duration(milliseconds: 300))
         .distinct()
-        .listen((searchTerm) {
-          add(SearchTodos(searchTerm));
-        });
+        .listen((term) => add(SearchTodos(term)));
+
+    // Load todos immediately
+    _loadTodos();
+  }
+
+  // Private method to load todos without event
+  Future<void> _loadTodos() async {
+    try {
+      final todos = await _todoRepository.getTodos();
+      emit(TodosLoaded(todos));
+    } catch (e) {
+      print('Error in _loadTodos: $e');
+      emit(TodosError('Failed to load todos: $e'));
+    }
+  }
+
+  void _onLoadTodos(LoadTodos event, Emitter<TodosState> emit) async {
+    emit(TodosLoading());
+    try {
+      final todos = await _todoRepository.getTodos();
+      emit(TodosLoaded(todos));
+    } catch (e) {
+      print('Error in _onLoadTodos: $e');
+      emit(TodosError('Failed to load todos: $e'));
+    }
   }
 
   // Add search term to the BehaviorSubject
@@ -52,23 +61,8 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
 
   @override
   Future<void> close() {
-    _todosSubscription.cancel();
-    _searchSubscription.cancel();
     _searchTerms.close();
-    _todoRepository.dispose();
     return super.close();
-  }
-
-  void _onLoadTodos(LoadTodos event, Emitter<TodosState> emit) async {
-    emit(TodosLoading());
-    try {
-      // Reduced loading time to improve user experience
-      await Future.delayed(const Duration(milliseconds: 100));
-      final todos = await _todoRepository.todos.first;
-      emit(TodosLoaded(todos));
-    } catch (e) {
-      emit(TodosError(e.toString()));
-    }
   }
 
   void _onAddTodo(AddTodo event, Emitter<TodosState> emit) async {

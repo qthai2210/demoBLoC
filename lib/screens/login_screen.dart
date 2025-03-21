@@ -69,7 +69,7 @@ class LoginScreen extends StatelessWidget {
         height: 250,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)],
+            colors: [Color(0xFF009688), Color(0xFF00796B)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -165,7 +165,7 @@ class _LoginButton extends StatelessWidget {
                 context.read<LoginBloc>().add(const LoginSubmitted());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6A1B9A),
+                backgroundColor: const Color(0xFF009688),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

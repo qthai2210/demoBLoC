@@ -9,7 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'package:demobloc/bloc/authentication/authentication_bloc.dart';
 import 'package:demobloc/bloc/authentication/authentication_event.dart';
 
-class TodosScreen extends StatelessWidget {
+class TodosScreen extends StatefulWidget {
   const TodosScreen({super.key});
 
   static Route<void> route() {
@@ -17,11 +17,23 @@ class TodosScreen extends StatelessWidget {
   }
 
   @override
+  State<TodosScreen> createState() => _TodosScreenState();
+}
+
+class _TodosScreenState extends State<TodosScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Explicitly load todos when the screen appears
+    Future.microtask(() => context.read<TodosBloc>().add(LoadTodos()));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Todos'),
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF009688),
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
@@ -39,21 +51,52 @@ class TodosScreen extends StatelessWidget {
           Expanded(
             child: BlocBuilder<TodosBloc, TodosState>(
               builder: (context, state) {
-                if (state is TodosInitial) {
-                  context.read<TodosBloc>().add(LoadTodos());
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is TodosLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                // Add more debug output
+                print('Current todos state: $state');
+
+                if (state is TodosLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF009688),
+                      ),
+                    ),
+                  );
                 } else if (state is TodosLoaded) {
-                  final todos =
-                      state.filteredTodos; // Use filteredTodos instead of todos
+                  final todos = state.filteredTodos;
+                  print('Loaded ${todos.length} todos'); // Debug output
                   return todos.isEmpty
                       ? _buildEmptyState(state.searchTerm.isNotEmpty)
                       : _buildTodosList(context, todos);
                 } else if (state is TodosError) {
-                  return Center(child: Text('Error: ${state.message}'));
+                  // Show error but also add a retry button
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Error: ${state.message}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<TodosBloc>().add(LoadTodos());
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
                 } else {
-                  return const Center(child: Text('Something went wrong!'));
+                  // Always try to load if we're in an unknown state
+                  Future.microtask(
+                    () => context.read<TodosBloc>().add(LoadTodos()),
+                  );
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF009688),
+                      ),
+                    ),
+                  );
                 }
               },
             ),
@@ -61,7 +104,7 @@ class TodosScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF009688),
         onPressed: () {
           Navigator.of(context).push(
             AddEditTodoScreen.route(
@@ -151,7 +194,7 @@ class TodosScreen extends StatelessWidget {
               ),
               leading: Checkbox(
                 value: todo.isCompleted,
-                activeColor: const Color(0xFF6A1B9A),
+                activeColor: const Color(0xFF009688),
                 onChanged: (_) {
                   // Dispatch the event to toggle completion
                   context.read<TodosBloc>().add(ToggleTodoCompletion(todo.id));

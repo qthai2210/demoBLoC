@@ -1,3 +1,4 @@
+import 'package:demobloc/bloc/todos/todos_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:demobloc/bloc/authentication/authentication_bloc.dart';
@@ -13,8 +14,12 @@ void main() async {
   // Ensure Flutter binding is initialized before accessing platform services
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize repositories
   final authenticationRepository = AuthenticationRepository();
   final todoRepository = TodoRepository();
+
+  // Pre-load todos to reduce lag later
+  await todoRepository.getTodos();
 
   runApp(
     MyApp(
@@ -95,15 +100,16 @@ class _AppViewState extends State<AppView> {
       navigatorKey: _navigatorKey,
       title: 'BLoC Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6A1B9A)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF009688)),
         useMaterial3: true,
       ),
       builder: (context, child) {
         return BlocListener<AuthenticationBloc, AuthenticationState>(
           listener: (context, state) {
+            print('Authentication state changed: ${state.status}');
             switch (state.status) {
               case AuthenticationStatus.authenticated:
-                // Navigate directly to TodosScreen instead of HomeScreen
+                // Simply navigate without trying to load todos first
                 _navigator.pushAndRemoveUntil<void>(
                   TodosScreen.route(),
                   (route) => false,

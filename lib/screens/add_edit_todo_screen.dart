@@ -47,7 +47,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.todo == null ? 'Add Todo' : 'Edit Todo'),
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF009688),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -93,7 +93,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
+                  backgroundColor: const Color(0xFF009688),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

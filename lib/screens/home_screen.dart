@@ -16,7 +16,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF009688),
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
@@ -47,7 +47,7 @@ class HomeScreen extends StatelessWidget {
                 Navigator.of(context).push(TodosScreen.route());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6A1B9A),
+                backgroundColor: const Color(0xFF009688),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 30,
                   vertical: 12,

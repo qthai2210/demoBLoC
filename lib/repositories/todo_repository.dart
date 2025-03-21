@@ -6,30 +6,44 @@ import 'dart:convert';
 class TodoRepository {
   final List<Todo> _todos = [];
   final _controller = StreamController<List<Todo>>.broadcast();
+  bool _isInitialized = false;
 
-  Stream<List<Todo>> get todos => _controller.stream;
-
-  TodoRepository() {
-    _loadTodos();
+  Stream<List<Todo>> get todos async* {
+    // Make sure we're initialized
+    if (!_isInitialized) {
+      await _loadTodos();
+      _isInitialized = true;
+    }
+    // Return current todos immediately
+    yield _todos;
+    // Then listen for future updates
+    yield* _controller.stream;
   }
 
   Future<void> _loadTodos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final todosJson = prefs.getStringList('todos') ?? [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final todosJson = prefs.getStringList('todos') ?? [];
 
-    _todos.clear();
-    for (final todoJson in todosJson) {
-      final todoMap = jsonDecode(todoJson);
-      _todos.add(
-        Todo(
-          id: todoMap['id'],
-          title: todoMap['title'],
-          description: todoMap['description'],
-          isCompleted: todoMap['isCompleted'],
-        ),
-      );
+      _todos.clear();
+      for (final todoJson in todosJson) {
+        final todoMap = jsonDecode(todoJson);
+        _todos.add(
+          Todo(
+            id: todoMap['id'],
+            title: todoMap['title'],
+            description: todoMap['description'],
+            isCompleted: todoMap['isCompleted'],
+          ),
+        );
+      }
+      _controller.add(_todos);
+      print('Loaded ${_todos.length} todos from storage');
+    } catch (e) {
+      print('Error loading todos: $e');
+      // Don't throw, just add an empty list
+      _controller.add([]);
     }
-    _controller.add(_todos);
   }
 
   Future<void> _saveTodos() async {
@@ -75,6 +89,14 @@ class TodoRepository {
       _todos[index] = todo.copyWith(isCompleted: !todo.isCompleted);
       await _saveTodos();
     }
+  }
+
+  Future<List<Todo>> getTodos() async {
+    if (!_isInitialized) {
+      await _loadTodos();
+      _isInitialized = true;
+    }
+    return List.from(_todos);
   }
 
   void dispose() {
