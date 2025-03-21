@@ -5,23 +5,42 @@ import 'package:demobloc/bloc/authentication/authentication_state.dart';
 import 'package:demobloc/repositories/authentication_repository.dart';
 import 'package:demobloc/screens/home_screen.dart';
 import 'package:demobloc/screens/login_screen.dart';
+import 'package:demobloc/repositories/todo_repository.dart';
+import 'package:demobloc/bloc/todos/todos_bloc.dart';
+import 'package:demobloc/screens/todos_screen.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter binding is initialized before accessing platform services
+  WidgetsFlutterBinding.ensureInitialized();
+
   final authenticationRepository = AuthenticationRepository();
-  runApp(App(authenticationRepository: authenticationRepository));
+  final todoRepository = TodoRepository();
+
+  runApp(
+    MyApp(
+      authenticationRepository: authenticationRepository,
+      todoRepository: todoRepository,
+    ),
+  );
 }
 
-class App extends StatefulWidget {
-  const App({super.key, required this.authenticationRepository});
+class MyApp extends StatefulWidget {
+  const MyApp({
+    super.key,
+    required this.authenticationRepository,
+    required this.todoRepository,
+  });
 
   final AuthenticationRepository authenticationRepository;
+  final TodoRepository todoRepository;
 
   @override
-  State<App> createState() => _AppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
-class _AppState extends State<App> {
+class _MyAppState extends State<MyApp> {
   late final AuthenticationBloc _authenticationBloc;
+  late final TodosBloc _todosBloc;
 
   @override
   void initState() {
@@ -29,21 +48,29 @@ class _AppState extends State<App> {
     _authenticationBloc = AuthenticationBloc(
       authenticationRepository: widget.authenticationRepository,
     );
+    _todosBloc = TodosBloc(todoRepository: widget.todoRepository);
   }
 
   @override
   void dispose() {
     _authenticationBloc.close();
+    _todosBloc.close();
     widget.authenticationRepository.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: widget.authenticationRepository,
-      child: BlocProvider.value(
-        value: _authenticationBloc,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: widget.authenticationRepository),
+        RepositoryProvider.value(value: widget.todoRepository),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _authenticationBloc),
+          BlocProvider.value(value: _todosBloc),
+        ],
         child: const AppView(),
       ),
     );
@@ -76,8 +103,9 @@ class _AppViewState extends State<AppView> {
           listener: (context, state) {
             switch (state.status) {
               case AuthenticationStatus.authenticated:
+                // Navigate directly to TodosScreen instead of HomeScreen
                 _navigator.pushAndRemoveUntil<void>(
-                  HomeScreen.route(),
+                  TodosScreen.route(),
                   (route) => false,
                 );
                 break;
