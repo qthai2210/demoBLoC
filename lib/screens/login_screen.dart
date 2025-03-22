@@ -31,16 +31,32 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocListener<LoginBloc, LoginState>(
+        listenWhen:
+            (previous, current) =>
+                previous.status != current.status ||
+                previous.errorMessage != current.errorMessage,
         listener: (context, state) {
+          // Clear any existing snackbars first
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
           if (state.status == LoginStatus.failure) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(state.errorMessage),
-                  backgroundColor: Colors.red,
-                ),
-              );
+            final snackBar = SnackBar(
+              content: Text(state.errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Dismiss',
+                textColor: Colors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            );
+
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          } else if (state.status == LoginStatus.loading) {
+            // Hide any error messages when starting a new login attempt
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
           }
         },
         child: Stack(

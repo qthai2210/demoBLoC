@@ -24,7 +24,7 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
 
     // Set up debounced search
     _searchTerms
-        .debounceTime(const Duration(milliseconds: 300))
+        .debounceTime(const Duration(milliseconds: 1500))
         .distinct()
         .listen((term) => add(SearchTodos(term)));
 
@@ -98,9 +98,17 @@ class TodosBloc extends Bloc<TodosEvent, TodosState> {
     final state = this.state;
     if (state is TodosLoaded) {
       try {
+        // Optimistically update UI state first
+        final updatedTodos =
+            state.todos.where((todo) => todo.id != event.id).toList();
+        emit(TodosLoaded(updatedTodos, searchTerm: state.searchTerm));
+
+        // Then update the repository
         await _todoRepository.deleteTodo(event.id);
       } catch (e) {
         emit(TodosError(e.toString()));
+        // Reload todos on error to ensure consistency
+        add(LoadTodos());
       }
     }
   }

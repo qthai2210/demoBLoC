@@ -34,12 +34,22 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     if (state.username.isEmpty || state.password.isEmpty) {
       emit(
-        state.copyWith(errorMessage: 'Username and password cannot be empty'),
+        state.copyWith(
+          status: LoginStatus.failure,
+          errorMessage: 'Username and password cannot be empty',
+        ),
       );
       return;
     }
 
-    emit(state.copyWith(status: LoginStatus.loading));
+    // Reset any previous error and set loading state
+    emit(
+      state.copyWith(
+        status: LoginStatus.loading,
+        errorMessage: '', // Clear previous error message
+      ),
+    );
+
     try {
       await _authenticationRepository.logIn(
         username: state.username,
